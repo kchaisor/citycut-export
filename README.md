@@ -22,7 +22,7 @@ GitHub Pages still needs **Settings → Pages → Source: GitHub Actions** turne
    - **3D model** — extruded footprints in the browser (Three.js)
    - **Drawing** — SVG site plan, pan and zoom
    - **Satellite** — Esri imagery of the frame, preview only
-6. **Download.** glTF binary (`.glb`) and SVG. Those two downloads are real. DXF, DAE, 3DM, and JPG are not offered.
+6. **Download.** glTF binary (`.glb`), Rhino (`.3dm`), and SVG. DXF, DAE, and JPG are not offered.
 
 Building height, in order:
 
@@ -74,13 +74,14 @@ Nominatim’s usage policy asks for an identifying User-Agent. Browsers set that
 | 3D orbit view | Real |
 | Drawing tab (SVG, pan/zoom) | Real |
 | glTF `.glb` download | Real |
+| Rhino `.3dm` download | Real. Meshes in GDA2020 / MGA metres, Z-up |
 | SVG download | Real |
 | Satellite basemap and satellite tab | Real preview. Not embedded in the glTF or SVG |
 | Terrain | Stub. Toggle is labeled Soon and does not affect the model |
 | Contours | Stub, same as terrain |
 | Trees | Stub. Tree counts are omitted because they are not loaded |
 | Relief / terrain stats | Omitted. The ground is flat |
-| DXF, DAE, 3DM, JPG | Not in this version. No placeholder downloads |
+| DXF, DAE, JPG | Not in this version. No placeholder downloads |
 | Lidar, terrain mesh, detected trees | Not in this version |
 
 ## Limits
@@ -93,6 +94,7 @@ Nominatim’s usage policy asks for an identifying User-Agent. Browsers set that
 - Building count is capped at 4,000, keeping the largest footprints.
 - Road kilometres are clipped centerline length, including rail and tram, not lane area.
 - Relation holes are kept when a multipolygon stitches to a single outer ring.
+- The Rhino file projects WGS84 as GDA2020 with no datum shift (about a metre). The MGA zone follows the block’s longitude: zone 55 (EPSG:7855) from 144°E, zone 54 (EPSG:7854) west of that. It is not a survey.
 
 ## Attribution
 
@@ -105,5 +107,7 @@ CityCut is an original interface. Kelvin Chai, Melbourne.
 - `src/App.tsx` — select screen and model screen
 - `src/lib/overpass.ts` — query and endpoint fallback
 - `src/lib/parseOsm.ts` — footprints, roads, water, green
-- `src/lib/buildCity.ts` — Three.js group shared by the viewport and the glTF export
+- `src/lib/buildCity.ts` — Three.js group shared by the viewport, the glTF export, and the Rhino export
+- `src/lib/crs.ts` — MGA zone and proj4 projection for the `.3dm`
+- `src/lib/rhinoExport.ts` — Rhino `.3dm` meshes
 - `src/lib/svgPlan.ts` — drawing tab and SVG download

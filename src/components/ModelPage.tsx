@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { FAQ } from "../content/faq";
+import { CRS_NOTE, mgaCrs } from "../lib/crs";
 import { formatCoord, formatLengthKm } from "../lib/geo";
-import { downloadGlb, downloadSvg } from "../lib/download";
+import { download3dm, downloadGlb, downloadSvg } from "../lib/download";
 import type { CityModel } from "../types";
 import { DrawingPlan } from "./DrawingPlan";
 import { SatellitePane } from "./SatellitePane";
@@ -13,7 +14,8 @@ type Tab = "3d" | "drawing" | "satellite";
 export function ModelPage({ model }: { model: CityModel }) {
   const [tab, setTab] = useState<Tab>("3d");
   const [exportError, setExportError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"glb" | "svg" | null>(null);
+  const [busy, setBusy] = useState<"glb" | "svg" | "3dm" | null>(null);
+  const crs = mgaCrs(model.center.lon);
   const sideKm = model.sideM / 1000;
   const layerBits = [
     model.layers.buildings ? "buildings" : null,
@@ -28,6 +30,18 @@ export function ModelPage({ model }: { model: CityModel }) {
       await downloadGlb(model);
     } catch {
       setExportError("The glTF file could not be written.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function save3dm() {
+    setExportError(null);
+    setBusy("3dm");
+    try {
+      await download3dm(model);
+    } catch {
+      setExportError("The Rhino file could not be written.");
     } finally {
       setBusy(null);
     }
@@ -133,6 +147,17 @@ export function ModelPage({ model }: { model: CityModel }) {
           <article className="card">
             <div>
               <h2>
+                Rhino <span>.3dm</span>
+              </h2>
+              <p>The same meshes in {crs.name}, metres, Z-up.</p>
+            </div>
+            <button className="ghost" type="button" disabled={busy !== null} onClick={save3dm}>
+              {busy === "3dm" ? "Preparing…" : "Download"}
+            </button>
+          </article>
+          <article className="card">
+            <div>
+              <h2>
                 Site plan <span>.svg</span>
               </h2>
               <p>The same block as vectors: building fills, road lines, water, and green.</p>
@@ -143,9 +168,10 @@ export function ModelPage({ model }: { model: CityModel }) {
           </article>
         </div>
         <p className="v2">
-          This file includes {layerBits.join(", ") || "an empty block"}. DXF, DAE, 3DM, and JPG are
-          not available in this version.
+          This file includes {layerBits.join(", ") || "an empty block"}. DXF, DAE, and JPG are not
+          available in this version.
         </p>
+        <p className="v2">{CRS_NOTE}</p>
         {exportError && (
           <p className="error" role="alert">
             {exportError}

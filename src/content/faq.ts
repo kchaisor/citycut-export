@@ -17,7 +17,7 @@ export const FAQ = [
   },
   {
     q: "What can I download?",
-    a: "A binary glTF (.glb) and an SVG site plan. DXF, DAE, 3DM, and JPG are not in this version, so there is no placeholder download for them.",
+    a: "A binary glTF (.glb), a Rhino 3DM, and an SVG site plan. The 3DM is meshes in GDA2020 / MGA metres, Z-up. WGS84 is projected as GDA2020 without a datum shift, about a metre off for site work, and the zone follows the block longitude (west of 144°E is zone 54). DXF, DAE, and JPG are not in this version.",
   },
   {
     q: "How large can the frame be?",

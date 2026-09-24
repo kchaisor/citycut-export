@@ -11,7 +11,8 @@ export class SceneBoundary extends Component<{ children: ReactNode }, { failed: 
     if (this.state.failed) {
       return (
         <div className="scene-fallback">
-          The 3D view could not start in this browser. The drawing and the SVG download still work.
+          The 3D view could not start in this browser. The drawing, the SVG download, and the Rhino
+          download still work.
         </div>
       );
     }
