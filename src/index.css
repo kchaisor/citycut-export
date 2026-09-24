@@ -412,7 +412,7 @@ input[type="range"]::-moz-range-thumb {
 
 .exports {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-top: 12px;
 }

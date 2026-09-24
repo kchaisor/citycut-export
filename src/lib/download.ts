@@ -20,6 +20,14 @@ export function downloadBlob(filename: string, blob: Blob) {
   URL.revokeObjectURL(url);
 }
 
+export async function download3dm(model: CityModel): Promise<void> {
+  const { cityModelTo3dm } = await import("./rhinoExport");
+  const bytes = await cityModelTo3dm(model);
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  downloadBlob(`${fileStem(model)}.3dm`, new Blob([copy], { type: "application/octet-stream" }));
+}
+
 export function downloadSvg(model: CityModel) {
   const svg = sitePlanSvg(model);
   downloadBlob(
