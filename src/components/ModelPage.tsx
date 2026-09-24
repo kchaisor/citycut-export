@@ -21,6 +21,7 @@ export function ModelPage({ model }: { model: CityModel }) {
     model.layers.buildings ? "buildings" : null,
     model.layers.roads ? "roads and rail" : null,
     model.layers.waterGreen ? "water and green" : null,
+    model.layers.trees ? "trees" : null,
   ].filter(Boolean);
 
   async function saveGlb() {
@@ -91,6 +92,12 @@ export function ModelPage({ model }: { model: CityModel }) {
                 <dd>{formatLengthKm(model.roadKm)}</dd>
               </div>
             )}
+            {model.layers.trees && (
+              <div>
+                <dt>Trees</dt>
+                <dd>{model.trees.length.toLocaleString()}</dd>
+              </div>
+            )}
             <div>
               <dt>Area</dt>
               <dd>{(sideKm * sideKm).toFixed(2)} km²</dd>
@@ -138,7 +145,7 @@ export function ModelPage({ model }: { model: CityModel }) {
               <h2>
                 glTF <span>.glb</span>
               </h2>
-              <p>Buildings, roads, water, and green as a mesh. Flat ground, no textures.</p>
+              <p>Buildings, roads, water, green, and trees as meshes. Flat ground, no textures.</p>
             </div>
             <button className="ghost" type="button" disabled={busy !== null} onClick={saveGlb}>
               {busy === "glb" ? "Preparing…" : "Download"}
@@ -160,7 +167,7 @@ export function ModelPage({ model }: { model: CityModel }) {
               <h2>
                 Site plan <span>.svg</span>
               </h2>
-              <p>The same block as vectors: building fills, road lines, water, and green.</p>
+              <p>The same block as vectors: building fills, road lines, water, green, and tree symbols.</p>
             </div>
             <button className="ghost" type="button" disabled={busy !== null} onClick={saveSvg}>
               {busy === "svg" ? "Preparing…" : "Download"}

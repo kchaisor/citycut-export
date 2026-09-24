@@ -16,7 +16,7 @@ GitHub Pages still needs **Settings → Pages → Source: GitHub Actions** turne
 
 1. **Choose a block.** A MapLibre map fills the screen. A fixed frame stays centered while you pan and zoom. The frame is a true square on the ground, from 0.25 km to 1.4 km on a side (about 2 km² at the top of the slider).
 2. **Search.** Nominatim pans the map to a place. The frame still marks the area that will be exported.
-3. **Choose layers.** Buildings, roads and rail, and water and green are sent to Overpass and become the model. Terrain, contours, and trees are listed as **Soon** and are not in the file. Satellite image only switches the basemap.
+3. **Choose layers.** Buildings, roads and rail, and water and green are on by default and are sent to Overpass. Trees is off until you turn it on; it then queries `natural=tree` and `natural=tree_row` and draws simple trunk-and-cone placeholders. Terrain and contours are listed as **Soon** and are not in the file. Satellite image only switches the basemap.
 4. **Create model.** CityCut queries Overpass for that bounding box, clips every feature to the square, and opens the result.
 5. **Review.** Three views of the same block:
    - **3D model** — extruded footprints in the browser (Three.js)
@@ -31,6 +31,15 @@ Building height, in order:
 - otherwise 9 m
 
 Heights are capped between 3 m and 420 m. The ground is a flat slab. Multipolygon buildings, parks, and water bodies are stitched when the relation is small enough to assemble (80 members or fewer).
+
+Tree size, in order:
+
+- OSM `height` (feet are converted to meters), capped between 2 m and 50 m
+- crown diameter from `diameter_crown`, `crown_diameter`, or `diameter:crown`, capped between 1.5 m and 36 m
+- if only one of those is present, the other follows a crown that is about 0.6 of the height
+- if neither is present, 10 m tall and 6 m across
+
+A `natural=tree` area uses its centre. A `natural=tree_row` is sampled about one crown apart (6–14 m). Genus and species tags are stored and not used for the shape.
 
 ## Run locally
 
@@ -77,9 +86,9 @@ Nominatim’s usage policy asks for an identifying User-Agent. Browsers set that
 | Rhino `.3dm` download | Real. Meshes in GDA2020 / MGA metres, Z-up |
 | SVG download | Real |
 | Satellite basemap and satellite tab | Real preview. Not embedded in the glTF or SVG |
+| Trees | Real when the toggle is on. OpenStreetMap `natural=tree` and `tree_row`, low-poly placeholders in the 3D view, glTF, Rhino, and SVG plan |
 | Terrain | Stub. Toggle is labeled Soon and does not affect the model |
 | Contours | Stub, same as terrain |
-| Trees | Stub. Tree counts are omitted because they are not loaded |
 | Relief / terrain stats | Omitted. The ground is flat |
 | DXF, DAE, JPG | Not in this version. No placeholder downloads |
 | Lidar, terrain mesh, detected trees | Not in this version |
@@ -92,6 +101,7 @@ Nominatim’s usage policy asks for an identifying User-Agent. Browsers set that
 - Indoor corridors, tunnels, and `building:part` outlines are skipped so they do not paint through the block.
 - A very large multipolygon (more than 80 members) is skipped. Coastlines are not queried.
 - Building count is capped at 4,000, keeping the largest footprints.
+- Tree count is capped at 6,000, sampled evenly across the trees that were returned.
 - Road kilometres are clipped centerline length, including rail and tram, not lane area.
 - Relation holes are kept when a multipolygon stitches to a single outer ring.
 - The Rhino file projects WGS84 as GDA2020 with no datum shift (about a metre). The MGA zone follows the block’s longitude: zone 55 (EPSG:7855) from 144°E, zone 54 (EPSG:7854) west of that. It is not a survey.
@@ -106,7 +116,8 @@ CityCut is an original interface. Kelvin Chai, Melbourne.
 
 - `src/App.tsx` — select screen and model screen
 - `src/lib/overpass.ts` — query and endpoint fallback
-- `src/lib/parseOsm.ts` — footprints, roads, water, green
+- `src/lib/parseOsm.ts` — footprints, roads, water, green, trees
+- `src/lib/trees.ts` — tree height and crown diameter
 - `src/lib/buildCity.ts` — Three.js group shared by the viewport, the glTF export, and the Rhino export
 - `src/lib/crs.ts` — MGA zone and proj4 projection for the `.3dm`
 - `src/lib/rhinoExport.ts` — Rhino `.3dm` meshes

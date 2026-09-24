@@ -13,11 +13,15 @@ export const FAQ = [
   },
   {
     q: "Which layers are real?",
-    a: "Buildings, roads and rail, and water and green are queried and drawn. Terrain, contours, and trees can be toggled so the list is honest about what is missing; they are not in the file. Satellite image only changes the basemap preview.",
+    a: "Buildings, roads and rail, water and green, and trees are queried and drawn. Terrain and contours can be toggled so the list is honest about what is missing; they are not in the file. Satellite image only changes the basemap preview.",
+  },
+  {
+    q: "How are trees drawn?",
+    a: "Trees are OpenStreetMap natural=tree points, tree areas, and tree rows. Each one is a simple trunk and cone, not a species model. Height uses the height tag when it is present (feet are converted). Crown diameter uses diameter_crown, crown_diameter, or diameter:crown. If only one of height or crown is tagged, the other is estimated so the crown is about 0.6 of the height. If neither is present, the tree is 10 m tall and 6 m across. Genus and species tags are kept on the tree for later, and are not used to pick a shape.",
   },
   {
     q: "What can I download?",
-    a: "A binary glTF (.glb), a Rhino 3DM, and an SVG site plan. The 3DM is meshes in GDA2020 / MGA metres, Z-up. WGS84 is projected as GDA2020 without a datum shift, about a metre off for site work, and the zone follows the block longitude (west of 144°E is zone 54). DXF, DAE, and JPG are not in this version.",
+    a: "A binary glTF (.glb), a Rhino 3DM, and an SVG site plan. Trees, when that layer is on, are in all three: meshes in the glTF and 3DM, circles on the plan. The 3DM is meshes in GDA2020 / MGA metres, Z-up. WGS84 is projected as GDA2020 without a datum shift, about a metre off for site work, and the zone follows the block longitude (west of 144°E is zone 54). DXF, DAE, and JPG are not in this version.",
   },
   {
     q: "How large can the frame be?",

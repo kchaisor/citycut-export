@@ -12,6 +12,7 @@ export type ModelLayers = {
   buildings: boolean;
   roads: boolean;
   waterGreen: boolean;
+  trees: boolean;
 };
 
 export type BuildingFeat = {
@@ -35,6 +36,17 @@ export type AreaFeat = {
   kind: "water" | "green";
 };
 
+export type TreeFeat = {
+  id: number;
+  /** East / north meters relative to the cut center. */
+  at: Pt;
+  height: number;
+  crownDiameter: number;
+  /** Copied from OSM when the element already has them. */
+  genus?: string;
+  species?: string;
+};
+
 export type CityModel = {
   placeLabel: string;
   center: LonLat;
@@ -43,6 +55,7 @@ export type CityModel = {
   buildings: BuildingFeat[];
   roads: RoadFeat[];
   areas: AreaFeat[];
+  trees: TreeFeat[];
   roadKm: number;
   buildingCapHit: boolean;
   sourceNote: string;

@@ -1,10 +1,21 @@
 import { clipPolygon, clipPolyline } from "./clip";
-import { dedupeConsecutive, polylineLength, signedArea, toLocal } from "./geo";
+import { dedupeConsecutive, openRing, polylineLength, signedArea, toLocal } from "./geo";
 import { buildingHeight } from "./height";
 import type { OverpassElement, OverpassResponse } from "./overpass";
-import type { AreaFeat, BuildingFeat, CityModel, LonLat, ModelLayers, Pt, RoadFeat } from "../types";
+import { DEFAULT_CROWN_DIAMETER, DEFAULT_TREE_HEIGHT, treeSize } from "./trees";
+import type {
+  AreaFeat,
+  BuildingFeat,
+  CityModel,
+  LonLat,
+  ModelLayers,
+  Pt,
+  RoadFeat,
+  TreeFeat,
+} from "../types";
 
 const MAX_BUILDINGS = 4000;
+const MAX_TREES = 6000;
 const MAX_RELATION_MEMBERS = 80;
 const MIN_AREA = 4;
 
@@ -191,6 +202,92 @@ function roadWidth(tags: Record<string, string>): { width: number; kind: "road" 
   return { width: ROAD_WIDTH[base] ?? 4.2, kind: "road" };
 }
 
+function ringCentroid(points: Pt[]): Pt | null {
+  const open = openRing(points);
+  if (open.length === 0) return null;
+  let east = 0;
+  let north = 0;
+  for (const point of open) {
+    east += point[0];
+    north += point[1];
+  }
+  return [east / open.length, north / open.length];
+}
+
+/** Places along a line, including the start, at about `spacing` metres. */
+function pointsAlong(line: Pt[], spacing: number): Pt[] {
+  if (line.length === 0) return [];
+  const out: Pt[] = [[line[0][0], line[0][1]]];
+  if (spacing <= 0) return out;
+  let since = 0;
+  for (let i = 0; i < line.length - 1; i++) {
+    const a = line[i];
+    const b = line[i + 1];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length < 0.05) continue;
+    let walked = 0;
+    while (since + (length - walked) >= spacing - 1e-6) {
+      const need = spacing - since;
+      walked += need;
+      const t = walked / length;
+      out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      since = 0;
+      if (out.length > 4000) return out;
+    }
+    since += length - walked;
+  }
+  return out;
+}
+
+function insideCut(at: Pt, half: number): boolean {
+  return Math.abs(at[0]) <= half + 0.2 && Math.abs(at[1]) <= half + 0.2;
+}
+
+function pushTree(trees: TreeFeat[], id: number, at: Pt, tags: Record<string, string>, half: number) {
+  if (!insideCut(at, half)) return;
+  const size = treeSize(tags);
+  const genus = tags.genus?.trim();
+  const species = tags.species?.trim();
+  trees.push({
+    id,
+    at,
+    height: size.height,
+    crownDiameter: size.crownDiameter,
+    ...(genus ? { genus } : {}),
+    ...(species ? { species } : {}),
+  });
+}
+
+function collectTrees(elements: OverpassElement[], origin: LonLat, half: number): TreeFeat[] {
+  const trees: TreeFeat[] = [];
+  for (const element of elements) {
+    const tags = element.tags ?? {};
+    if (hidden(tags)) continue;
+    if (element.type === "node") {
+      if (tags.natural !== "tree" || element.lat == null || element.lon == null) continue;
+      pushTree(trees, element.id, toLocal(element.lat, element.lon, origin), tags, half);
+      continue;
+    }
+    if (element.type !== "way") continue;
+    if (tags.natural !== "tree" && tags.natural !== "tree_row") continue;
+    const line = pointsFromGeom(element.geometry, origin);
+    if (line.length < 2) continue;
+    if (tags.natural === "tree" && isClosed(line)) {
+      const at = ringCentroid(line);
+      if (at) pushTree(trees, element.id, at, tags, half);
+      continue;
+    }
+    const size = treeSize(tags);
+    const spacing = Math.min(14, Math.max(6, size.crownDiameter));
+    for (const part of clipPolyline(line, -half, half)) {
+      for (const point of pointsAlong(part, spacing)) {
+        pushTree(trees, element.id, point, tags, half);
+      }
+    }
+  }
+  return trees;
+}
+
 function clipRing(points: Pt[], half: number): Pt[] {
   const clipped = clipPolygon(points, -half, half);
   if (clipped.length < 3) return [];
@@ -248,6 +345,17 @@ export function parseCity(
   let roadMeters = 0;
 
   const elements = data.elements ?? [];
+  let trees = layers.trees ? collectTrees(elements, origin, half) : [];
+  let treeCapHit = false;
+  if (trees.length > MAX_TREES) {
+    treeCapHit = true;
+    const step = trees.length / MAX_TREES;
+    const kept: TreeFeat[] = [];
+    for (let i = 0; i < MAX_TREES; i++) {
+      kept.push(trees[Math.min(trees.length - 1, Math.floor(i * step))]);
+    }
+    trees = kept;
+  }
 
   if (layers.buildings || layers.waterGreen) {
     for (const element of elements) {
@@ -334,7 +442,13 @@ export function parseCity(
     "Building height uses the height tag, otherwise building:levels × 3 m, otherwise 9 m.",
     "Ground is flat — no lidar or terrain in this version.",
   ];
+  if (layers.trees) {
+    notes.push(
+      `Trees use height and crown diameter tags when present, otherwise ${DEFAULT_TREE_HEIGHT} m tall and ${DEFAULT_CROWN_DIAMETER} m across.`,
+    );
+  }
   if (buildingCapHit) notes.push(`Building count was capped at ${MAX_BUILDINGS}.`);
+  if (treeCapHit) notes.push(`Tree count was capped at ${MAX_TREES}.`);
 
   return {
     center: origin,
@@ -343,6 +457,7 @@ export function parseCity(
     buildings: kept,
     roads,
     areas,
+    trees,
     roadKm: roadMeters / 1000,
     buildingCapHit,
     sourceNote: notes.join(" "),
