@@ -24,6 +24,7 @@ export type PlanPaths = {
   roads: { d: string; width: number }[];
   rails: { d: string; width: number }[];
   buildings: string[];
+  trees: { x: number; y: number; r: number }[];
 };
 
 export function planPaths(model: CityModel): PlanPaths {
@@ -47,7 +48,12 @@ export function planPaths(model: CityModel): PlanPaths {
   const buildings = model.buildings
     .map((building) => polygonPath(building.ring, building.holes))
     .filter(Boolean);
-  return { green, water, roads, rails, buildings };
+  const trees = model.trees.map((tree) => ({
+    x: tree.at[0],
+    y: -tree.at[1],
+    r: tree.crownDiameter / 2,
+  }));
+  return { green, water, roads, rails, buildings, trees };
 }
 
 export function sitePlanSvg(model: CityModel): string {
@@ -72,6 +78,13 @@ export function sitePlanSvg(model: CityModel): string {
   const buildings = paths.buildings
     .map((d) => `<path d="${d}" fill="#1c1b17" fill-rule="evenodd"/>`)
     .join("");
+  const treeStroke = round(Math.max(model.sideM * 0.0015, 0.4));
+  const trees = paths.trees
+    .map(
+      (tree) =>
+        `<circle cx="${round(tree.x)}" cy="${round(tree.y)}" r="${round(tree.r)}" fill="#6ea35a" stroke="#245232" stroke-width="${treeStroke}"/>`,
+    )
+    .join("");
   const title = `CityCut ${model.placeLabel} ${model.center.lat.toFixed(5)}, ${model.center.lon.toFixed(5)}`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="1400" height="1400">
@@ -84,6 +97,7 @@ export function sitePlanSvg(model: CityModel): string {
   ${roads}
   ${rails}
   ${buildings}
+  ${trees}
   <rect x="${round(-half)}" y="${round(-half)}" width="${round(model.sideM)}" height="${round(model.sideM)}" fill="none" stroke="#1c1b17" stroke-width="${round(model.sideM * 0.004)}"/>
   <text x="0" y="${round(-half + model.sideM * 0.035)}" text-anchor="middle" font-family="Georgia, serif" font-size="${round(model.sideM * 0.028)}" fill="#1c1b17">N</text>
 </svg>`;

@@ -10,7 +10,7 @@ const ROWS: { key: keyof UiLayers; label: string; soon?: boolean; hint?: string 
   { key: "terrain", label: "Terrain", soon: true },
   { key: "contours", label: "Contours", soon: true },
   { key: "waterGreen", label: "Water and green" },
-  { key: "trees", label: "Trees", soon: true },
+  { key: "trees", label: "Trees" },
   { key: "satellite", label: "Satellite image", hint: "Basemap only" },
 ];
 
@@ -83,7 +83,7 @@ export function Sidebar({
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const soonOn = (["terrain", "contours", "trees"] as const).filter((key) => layers[key]);
+  const soonOn = (["terrain", "contours"] as const).filter((key) => layers[key]);
   const area = sideKm * sideKm;
 
   return (

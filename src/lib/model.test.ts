@@ -113,7 +113,7 @@ describe("parse", () => {
       },
       origin,
       400,
-      { buildings: true, roads: true, waterGreen: true },
+      { buildings: true, roads: true, waterGreen: true, trees: false },
     );
 
     expect(parsed.buildings).toHaveLength(1);
@@ -156,7 +156,7 @@ describe("parse", () => {
       },
       origin,
       200,
-      { buildings: false, roads: false, waterGreen: true },
+      { buildings: false, roads: false, waterGreen: true, trees: false },
     );
     expect(parsed.areas).toHaveLength(1);
     expect(parsed.areas[0].kind).toBe("water");
@@ -168,10 +168,11 @@ describe("exports", () => {
     placeLabel: "Test",
     center: origin,
     sideM: 200,
-    layers: { buildings: true, roads: true, waterGreen: true },
+    layers: { buildings: true, roads: true, waterGreen: true, trees: false },
     buildings: [{ id: 1, ring: square([0, 0], 40), holes: [], height: 12 }],
     roads: [{ id: 2, line: [[-80, 10], [80, 10]], width: 6, kind: "road" }],
     areas: [{ id: 3, ring: square([-40, -40], 30), holes: [], kind: "green" }],
+    trees: [],
     roadKm: 0.16,
     buildingCapHit: false,
     sourceNote: "test",

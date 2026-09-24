@@ -1,3 +1,5 @@
+import type { ModelLayers } from "../types";
+
 export type OverpassElement = {
   type: "node" | "way" | "relation";
   id: number;
@@ -41,10 +43,7 @@ export function overpassBBox(bounds: {
   return `(${n(bounds.south)},${n(bounds.west)},${n(bounds.north)},${n(bounds.east)})`;
 }
 
-export function buildOverpassQuery(
-  bbox: string,
-  layers: { buildings: boolean; roads: boolean; waterGreen: boolean },
-): string {
+export function buildOverpassQuery(bbox: string, layers: ModelLayers): string {
   const parts: string[] = [];
   if (layers.buildings) {
     parts.push(`way["building"]["building"!="no"]${bbox};`);
@@ -53,6 +52,11 @@ export function buildOverpassQuery(
   if (layers.roads) {
     parts.push(`way["highway"]${bbox};`);
     parts.push(`way["railway"~"^(rail|light_rail|tram|subway|narrow_gauge)$"]${bbox};`);
+  }
+  if (layers.trees) {
+    parts.push(`node["natural"="tree"]${bbox};`);
+    parts.push(`way["natural"="tree"]${bbox};`);
+    parts.push(`way["natural"="tree_row"]${bbox};`);
   }
   if (layers.waterGreen) {
     parts.push(`way["natural"="water"]${bbox};`);
@@ -71,7 +75,7 @@ export function buildOverpassQuery(
     parts.push(`relation["natural"~"^(wood|wetland)$"]${bbox};`);
   }
   if (parts.length === 0) {
-    throw new OverpassError("Turn on Buildings, Roads and rail, or Water and green.");
+    throw new OverpassError("Turn on Buildings, Roads and rail, Water and green, or Trees.");
   }
   return `[out:json][timeout:60][maxsize:32000000];(${parts.join("")});out geom;`;
 }

@@ -47,7 +47,11 @@ export function DrawingPlan({ model }: { model: CityModel }) {
   }, [model.sideM]);
 
   const half = model.sideM / 2;
-  const empty = model.buildings.length === 0 && model.roads.length === 0 && model.areas.length === 0;
+  const empty =
+    model.buildings.length === 0 &&
+    model.roads.length === 0 &&
+    model.areas.length === 0 &&
+    model.trees.length === 0;
 
   return (
     <svg
@@ -106,6 +110,17 @@ export function DrawingPlan({ model }: { model: CityModel }) {
       ))}
       {paths.buildings.map((d, index) => (
         <path key={`b${index}`} d={d} fill="#1c1b17" fillRule="evenodd" />
+      ))}
+      {paths.trees.map((tree, index) => (
+        <circle
+          key={`t${index}`}
+          cx={tree.x}
+          cy={tree.y}
+          r={tree.r}
+          fill="#6ea35a"
+          stroke="#245232"
+          strokeWidth={Math.max(model.sideM * 0.0015, 0.4)}
+        />
       ))}
       <rect
         x={-half}

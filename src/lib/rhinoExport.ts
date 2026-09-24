@@ -14,6 +14,7 @@ const LAYER_COLORS: Record<string, { r: number; g: number; b: number }> = {
   Water: { r: 142, g: 191, b: 200 },
   Green: { r: 127, g: 154, b: 98 },
   Ground: { r: 230, g: 224, b: 212 },
+  Trees: { r: 62, g: 138, b: 72 },
 };
 
 let rhinoPromise: Promise<Rhino> | null = null;

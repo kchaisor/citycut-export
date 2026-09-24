@@ -20,10 +20,11 @@ const model: CityModel = {
   placeLabel: "Test",
   center: origin,
   sideM: 200,
-  layers: { buildings: true, roads: true, waterGreen: true },
+  layers: { buildings: true, roads: true, waterGreen: true, trees: false },
   buildings: [{ id: 1, ring: square([0, 0], 40), holes: [], height: 12 }],
   roads: [{ id: 2, line: [[-80, 10], [80, 10]], width: 6, kind: "road" }],
   areas: [{ id: 3, ring: square([-40, -40], 30), holes: [], kind: "green" }],
+  trees: [],
   roadKm: 0.16,
   buildingCapHit: false,
   sourceNote: "test",
@@ -86,6 +87,37 @@ describe("rhino export", () => {
       expect(hasTop).toBe(true);
       expect(hasSouth).toBe(true);
       expect(top[1]).toBeGreaterThan(south[1]);
+    } finally {
+      doc.destroy();
+    }
+  });
+
+  it("includes a tree mesh with its tip at the tree height", async () => {
+    const bytes = await cityModelTo3dm({
+      ...model,
+      layers: { ...model.layers, trees: true },
+      trees: [{ id: 9, at: [20, 30], height: 14, crownDiameter: 8 }],
+    });
+    const rhino = await loadRhino();
+    const doc = rhino.File3dm.fromByteArray(bytes);
+    try {
+      const names: string[] = [];
+      const points: number[][] = [];
+      for (let i = 0; i < doc.objects().count; i++) {
+        const object = doc.objects().get(i);
+        names.push(object.attributes().name);
+        const geometry = object.geometry() as unknown as ReadMesh;
+        for (let v = 0; v < geometry.vertices().count; v++) {
+          points.push(geometry.vertices().point3dAt(v));
+        }
+      }
+      expect(names).toContain("Trees");
+      const tip = projectLocal([20, 30], origin, 55);
+      const hasTip = points.some(
+        (point) =>
+          Math.hypot(point[0] - tip[0], point[1] - tip[1]) < 0.05 && Math.abs(point[2] - 14) < 0.05,
+      );
+      expect(hasTip).toBe(true);
     } finally {
       doc.destroy();
     }

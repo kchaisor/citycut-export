@@ -107,9 +107,10 @@ export default function App() {
       buildings: layers.buildings,
       roads: layers.roads,
       waterGreen: layers.waterGreen,
+      trees: layers.trees,
     };
-    if (!modelLayers.buildings && !modelLayers.roads && !modelLayers.waterGreen) {
-      setError("Turn on Buildings, Roads and rail, or Water and green.");
+    if (!modelLayers.buildings && !modelLayers.roads && !modelLayers.waterGreen && !modelLayers.trees) {
+      setError("Turn on Buildings, Roads and rail, Water and green, or Trees.");
       return;
     }
     if (sideM * sideM > MAX_AREA_M2 + 1) {
