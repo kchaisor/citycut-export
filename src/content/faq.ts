@@ -17,7 +17,7 @@ export const FAQ = [
   },
   {
     q: "How are trees drawn?",
-    a: "Trees are OpenStreetMap natural=tree points, tree areas, and tree rows. Each one is a simple trunk and cone, not a species model. Height uses the height tag when it is present (feet are converted). Crown diameter uses diameter_crown, crown_diameter, or diameter:crown. If only one of height or crown is tagged, the other is estimated so the crown is about 0.6 of the height. If neither is present, the tree is 10 m tall and 6 m across. Genus and species tags are kept on the tree for later, and are not used to pick a shape.",
+    a: "Trees are OpenStreetMap natural=tree points, tree areas, and tree rows. Each one uses a low-poly massing form chosen from genus, species, taxon, leaf type, and leaf cycle, with a generic broadleaf when those tags do not match. Height uses the height tag when it is present (feet are converted). Crown diameter uses diameter_crown, crown_diameter, or diameter:crown. If only one of height or crown is tagged, the other is estimated so the crown is about 0.6 of the height. If neither is present, the tree is 10 m tall and 6 m across. The 3D view draws one instanced mesh per form.",
   },
   {
     q: "What can I download?",

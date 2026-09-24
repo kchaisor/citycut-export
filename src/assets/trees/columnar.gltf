@@ -1,0 +1,124 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "CityCut"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "columnar",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "columnar",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "COLOR_0": 2
+          },
+          "indices": 3,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3",
+      "min": [
+        -0.5,
+        0,
+        -0.5
+      ],
+      "max": [
+        0.5,
+        1,
+        0.5
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3",
+      "min": [
+        -0.992268979549408,
+        -1,
+        -0.992268979549408
+      ],
+      "max": [
+        0.992268979549408,
+        0.11715994030237198,
+        0.992268979549408
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3",
+      "min": [
+        0.10224173218011856,
+        0.06847816705703735,
+        0.02955683507025242
+      ],
+      "max": [
+        0.14702726900577545,
+        0.2746773064136505,
+        0.06480326503515244
+      ]
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 168,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 396,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 792,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1188,
+      "byteLength": 336,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 1524,
+      "uri": "data:application/octet-stream;base64,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"
+    }
+  ]
+}

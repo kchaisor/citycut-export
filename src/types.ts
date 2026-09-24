@@ -45,6 +45,11 @@ export type TreeFeat = {
   /** Copied from OSM when the element already has them. */
   genus?: string;
   species?: string;
+  taxon?: string;
+  leafType?: string;
+  leafCycle?: string;
+  /** Massing form chosen from the tags above. */
+  archetype?: string;
 };
 
 export type CityModel = {

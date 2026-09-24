@@ -2,6 +2,7 @@ import { clipPolygon, clipPolyline } from "./clip";
 import { dedupeConsecutive, openRing, polylineLength, signedArea, toLocal } from "./geo";
 import { buildingHeight } from "./height";
 import type { OverpassElement, OverpassResponse } from "./overpass";
+import { resolveArchetype } from "./treeMap";
 import { DEFAULT_CROWN_DIAMETER, DEFAULT_TREE_HEIGHT, treeSize } from "./trees";
 import type {
   AreaFeat,
@@ -243,11 +244,19 @@ function insideCut(at: Pt, half: number): boolean {
   return Math.abs(at[0]) <= half + 0.2 && Math.abs(at[1]) <= half + 0.2;
 }
 
+function optionalTag(tags: Record<string, string>, key: string): string | undefined {
+  const value = tags[key]?.trim();
+  return value ? value : undefined;
+}
+
 function pushTree(trees: TreeFeat[], id: number, at: Pt, tags: Record<string, string>, half: number) {
   if (!insideCut(at, half)) return;
   const size = treeSize(tags);
-  const genus = tags.genus?.trim();
-  const species = tags.species?.trim();
+  const genus = optionalTag(tags, "genus");
+  const species = optionalTag(tags, "species");
+  const taxon = optionalTag(tags, "taxon");
+  const leafType = optionalTag(tags, "leaf_type");
+  const leafCycle = optionalTag(tags, "leaf_cycle");
   trees.push({
     id,
     at,
@@ -255,6 +264,10 @@ function pushTree(trees: TreeFeat[], id: number, at: Pt, tags: Record<string, st
     crownDiameter: size.crownDiameter,
     ...(genus ? { genus } : {}),
     ...(species ? { species } : {}),
+    ...(taxon ? { taxon } : {}),
+    ...(leafType ? { leafType } : {}),
+    ...(leafCycle ? { leafCycle } : {}),
+    archetype: resolveArchetype({ genus, species, taxon, leafType, leafCycle }),
   });
 }
 
@@ -444,7 +457,7 @@ export function parseCity(
   ];
   if (layers.trees) {
     notes.push(
-      `Trees use height and crown diameter tags when present, otherwise ${DEFAULT_TREE_HEIGHT} m tall and ${DEFAULT_CROWN_DIAMETER} m across.`,
+      `Trees use height and crown diameter tags when present, otherwise ${DEFAULT_TREE_HEIGHT} m tall and ${DEFAULT_CROWN_DIAMETER} m across. Genus, species, taxon, and leaf tags choose a massing archetype.`,
     );
   }
   if (buildingCapHit) notes.push(`Building count was capped at ${MAX_BUILDINGS}.`);
