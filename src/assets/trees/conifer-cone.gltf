@@ -1,0 +1,124 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "CityCut"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "conifer-cone",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "conifer-cone",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "COLOR_0": 2
+          },
+          "indices": 3,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 41,
+      "type": "VEC3",
+      "min": [
+        -0.5,
+        0,
+        -0.5
+      ],
+      "max": [
+        0.5,
+        1,
+        0.5
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 41,
+      "type": "VEC3",
+      "min": [
+        -0.9891889095306396,
+        -1,
+        -0.9891889095306396
+      ],
+      "max": [
+        0.9891889095306396,
+        0.5333938002586365,
+        0.9891889095306396
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 41,
+      "type": "VEC3",
+      "min": [
+        0.012983032502233982,
+        0.06847816705703735,
+        0.02955683507025242
+      ],
+      "max": [
+        0.14702726900577545,
+        0.10224173218011856,
+        0.039546236395835876
+      ]
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 216,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 492,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 492,
+      "byteLength": 492,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 984,
+      "byteLength": 492,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1476,
+      "byteLength": 432,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 1908,
+      "uri": "data:application/octet-stream;base64,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"
+    }
+  ]
+}

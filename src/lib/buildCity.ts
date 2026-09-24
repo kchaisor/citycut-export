@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { buildTreeGroup } from "./treeArchetypes";
 import { openRing, signedArea } from "./geo";
 import type { CityModel, Pt, Ring } from "../types";
 
@@ -58,40 +59,6 @@ function mergeMeshes(
     for (const geometry of usable) group.add(new THREE.Mesh(geometry, material));
     return group;
   }
-}
-
-const TRUNK_COLOR = new THREE.Color("#6b4a30");
-const CROWN_COLOR = new THREE.Color("#3e8a48");
-
-function paint(geometry: THREE.BufferGeometry, color: THREE.Color) {
-  const count = geometry.getAttribute("position").count;
-  const colors = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
-    colors[i * 3] = color.r;
-    colors[i * 3 + 1] = color.g;
-    colors[i * 3 + 2] = color.b;
-  }
-  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-}
-
-/** Cone crown on a cylinder trunk. Tip sits at the tree height. */
-function treeGeometries(model: CityModel): THREE.BufferGeometry[] {
-  const geometries: THREE.BufferGeometry[] = [];
-  for (const tree of model.trees) {
-    const east = tree.at[0];
-    const north = tree.at[1];
-    const trunkHeight = Math.min(tree.height * 0.4, Math.max(tree.height - 0.8, 0.4));
-    const crownHeight = Math.max(tree.height - trunkHeight, 0.4);
-    const radius = Math.min(0.55, Math.max(0.15, tree.crownDiameter * 0.04));
-    const trunk = new THREE.CylinderGeometry(radius, radius * 1.15, trunkHeight, 5);
-    trunk.translate(east, trunkHeight / 2, -north);
-    paint(trunk, TRUNK_COLOR);
-    const crown = new THREE.ConeGeometry(tree.crownDiameter / 2, crownHeight, 6);
-    crown.translate(east, trunkHeight + crownHeight / 2, -north);
-    paint(crown, CROWN_COLOR);
-    geometries.push(trunk, crown);
-  }
-  return geometries;
 }
 
 function ribbonPositions(line: Pt[], width: number, y: number): number[] {
@@ -218,8 +185,7 @@ export function buildCityGroup(model: CityModel): THREE.Group {
   const buildings = mergeMeshes(buildingGeos, buildingMat, "Buildings");
   if (buildings) group.add(buildings);
 
-  const treeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86 });
-  const trees = mergeMeshes(treeGeometries(model), treeMat, "Trees");
+  const trees = buildTreeGroup(model.trees);
   if (trees) group.add(trees);
 
   return group;

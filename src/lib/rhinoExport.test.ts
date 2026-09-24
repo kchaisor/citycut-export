@@ -117,7 +117,12 @@ describe("rhino export", () => {
         (point) =>
           Math.hypot(point[0] - tip[0], point[1] - tip[1]) < 0.05 && Math.abs(point[2] - 14) < 0.05,
       );
+      const hasCrown = points.some((point) => {
+        const radial = Math.hypot(point[0] - tip[0], point[1] - tip[1]);
+        return radial > 3.2 && radial < 4.3 && point[2] > 8 && point[2] < 12.5;
+      });
       expect(hasTip).toBe(true);
+      expect(hasCrown).toBe(true);
     } finally {
       doc.destroy();
     }

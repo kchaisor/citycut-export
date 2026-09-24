@@ -115,6 +115,7 @@ describe("tree parse", () => {
     expect(parsed.trees[0].height).toBe(16);
     expect(parsed.trees[0].crownDiameter).toBe(9);
     expect(parsed.trees[0].species).toBe("Corymbia maculata");
+    expect(parsed.trees[0].archetype).toBe("gum-open");
   });
 
   it("defaults an untagged tree", () => {
@@ -131,6 +132,7 @@ describe("tree parse", () => {
     );
     expect(parsed.trees[0].height).toBe(DEFAULT_TREE_HEIGHT);
     expect(parsed.trees[0].crownDiameter).toBe(DEFAULT_CROWN_DIAMETER);
+    expect(parsed.trees[0].archetype).toBe("generic");
     expect(parsed.sourceNote).toContain("10 m tall");
   });
 
@@ -245,25 +247,43 @@ describe("tree exports", () => {
     expect(svg).toContain('r="4"');
   });
 
-  it("builds a tree mesh whose tip is at the tree height", () => {
+  it("instances one archetype and scales it to the tree height and crown", () => {
     const group = buildCityGroup(model);
     const trees = group.getObjectByName("Trees");
     expect(trees).toBeTruthy();
     group.updateMatrixWorld(true);
-    const found: THREE.Vector3[] = [];
+    const meshes: THREE.InstancedMesh[] = [];
     trees!.traverse((object) => {
-      const mesh = object as THREE.Mesh;
-      const position = mesh.geometry?.getAttribute?.("position");
-      if (!position) return;
-      const vertex = new THREE.Vector3();
-      for (let i = 0; i < position.count; i++) {
-        vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
-        if (Math.abs(vertex.y - 14) < 0.05) found.push(vertex.clone());
-      }
+      const mesh = object as THREE.InstancedMesh;
+      if (mesh.isInstancedMesh) meshes.push(mesh);
     });
-    expect(found.some((vertex) => Math.abs(vertex.x - 20) < 0.05 && Math.abs(vertex.z + 30) < 0.05)).toBe(
-      true,
-    );
+    expect(meshes).toHaveLength(1);
+    expect(meshes[0].count).toBe(1);
+    expect(meshes[0].userData.archetype).toBe("generic");
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    meshes[0].getMatrixAt(0, matrix);
+    matrix.decompose(position, quaternion, scale);
+    expect(position.x).toBeCloseTo(20);
+    expect(position.z).toBeCloseTo(-30);
+    expect(scale.y).toBeCloseTo(14);
+    expect(scale.x).toBeCloseTo(8);
+    expect(scale.z).toBeCloseTo(8);
+    matrix.premultiply(meshes[0].matrixWorld);
+    const vertex = new THREE.Vector3();
+    const attribute = meshes[0].geometry.getAttribute("position");
+    let tip = false;
+    let wideCrown = false;
+    for (let i = 0; i < attribute.count; i++) {
+      vertex.fromBufferAttribute(attribute, i).applyMatrix4(matrix);
+      const radial = Math.hypot(vertex.x - 20, vertex.z + 30);
+      if (Math.abs(vertex.y - 14) < 0.05 && radial < 0.05) tip = true;
+      if (radial > 3.2 && radial < 4.3 && vertex.y > 8 && vertex.y < 12.5) wideCrown = true;
+    }
+    expect(tip).toBe(true);
+    expect(wideCrown).toBe(true);
     disposeObject(group);
   });
 
@@ -288,7 +308,10 @@ describe("tree exports", () => {
           { binary: true },
         );
       });
-      expect(new TextDecoder().decode(buffer)).toContain("Trees");
+      const text = new TextDecoder().decode(buffer);
+      expect(text).toContain("Trees");
+      expect(text).toContain("EXT_mesh_gpu_instancing");
+      expect(text).toContain("generic");
     } finally {
       disposeObject(group);
     }

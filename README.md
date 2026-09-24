@@ -16,8 +16,8 @@ GitHub Pages still needs **Settings → Pages → Source: GitHub Actions** turne
 
 1. **Choose a block.** A MapLibre map fills the screen. A fixed frame stays centered while you pan and zoom. The frame is a true square on the ground, from 0.25 km to 1.4 km on a side (about 2 km² at the top of the slider).
 2. **Search.** Nominatim pans the map to a place. The frame still marks the area that will be exported.
-3. **Choose layers.** Buildings, roads and rail, and water and green are on by default and are sent to Overpass. Trees is off until you turn it on; it then queries `natural=tree` and `natural=tree_row` and draws simple trunk-and-cone placeholders. Terrain and contours are listed as **Soon** and are not in the file. Satellite image only switches the basemap.
-4. **Create model.** CityCut queries Overpass for that bounding box, clips every feature to the square, and opens the result.
+3. **Choose layers.** Buildings, roads and rail, and water and green are on by default and are sent to Overpass. Trees is off until you turn it on; it then queries `natural=tree` and `natural=tree_row` and draws instanced archetype silhouettes. Terrain and contours are listed as **Soon** and are not in the file. Satellite image only switches the basemap.
+4. **Create model.** CityCut queries Overpass for that bounding box, clips every feature to the square, and opens the result. Trees, when that layer is on, are drawn as instanced massing forms rather than one mesh per tree.
 5. **Review.** Three views of the same block:
    - **3D model** — extruded footprints in the browser (Three.js)
    - **Drawing** — SVG site plan, pan and zoom
@@ -39,7 +39,9 @@ Tree size, in order:
 - if only one of those is present, the other follows a crown that is about 0.6 of the height
 - if neither is present, 10 m tall and 6 m across
 
-A `natural=tree` area uses its centre. A `natural=tree_row` is sampled about one crown apart (6–14 m). Genus and species tags are stored and not used for the shape.
+A `natural=tree` area uses its centre. A `natural=tree_row` is sampled about one crown apart (6–14 m).
+
+Genus, species, taxon, `leaf_type`, and `leaf_cycle` pick a massing archetype. Matching is case-insensitive: spaces and underscores are the same, and a hybrid × is ignored. A species or taxon name is tried first, then the genus, then leaf type, then leaf cycle. Anything still unknown uses the generic broadleaf. The forms are a curated glTF library in `src/assets/trees/` (see that folder’s README). The viewport instances one mesh per form and scales it by the tree’s height and crown diameter. glTF and Rhino exports keep that silhouette; the SVG plan stays a circle per crown.
 
 ## Run locally
 
@@ -86,7 +88,7 @@ Nominatim’s usage policy asks for an identifying User-Agent. Browsers set that
 | Rhino `.3dm` download | Real. Meshes in GDA2020 / MGA metres, Z-up |
 | SVG download | Real |
 | Satellite basemap and satellite tab | Real preview. Not embedded in the glTF or SVG |
-| Trees | Real when the toggle is on. OpenStreetMap `natural=tree` and `tree_row`, low-poly placeholders in the 3D view, glTF, Rhino, and SVG plan |
+| Trees | Real when the toggle is on. OpenStreetMap `natural=tree` and `tree_row`. Instanced massing archetypes in the 3D view, glTF, and Rhino; circles on the SVG plan |
 | Terrain | Stub. Toggle is labeled Soon and does not affect the model |
 | Contours | Stub, same as terrain |
 | Relief / terrain stats | Omitted. The ground is flat |
@@ -118,6 +120,10 @@ CityCut is an original interface. Kelvin Chai, Melbourne.
 - `src/lib/overpass.ts` — query and endpoint fallback
 - `src/lib/parseOsm.ts` — footprints, roads, water, green, trees
 - `src/lib/trees.ts` — tree height and crown diameter
+- `src/lib/treeMap.ts` — OSM genus, species, taxon, and leaf tags to an archetype id
+- `src/lib/treeForms.ts` — low-poly archetype meshes and their glTF
+- `src/assets/trees/` — curated archetype glTF library
+- `src/lib/treeArchetypes.ts` — InstancedMesh groups scaled by height and crown
 - `src/lib/buildCity.ts` — Three.js group shared by the viewport, the glTF export, and the Rhino export
 - `src/lib/crs.ts` — MGA zone and proj4 projection for the `.3dm`
 - `src/lib/rhinoExport.ts` — Rhino `.3dm` meshes

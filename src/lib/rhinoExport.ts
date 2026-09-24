@@ -48,6 +48,17 @@ function release(object: object) {
   (object as { delete?: () => void }).delete?.();
 }
 
+function addWorldVertex(
+  vertices: { addPoint3d(x: number, y: number, z: number): number },
+  vertex: THREE.Vector3,
+  model: CityModel,
+  zone: number,
+) {
+  // Three.js is Y-up: x east, y elevation, z = −north.
+  const [easting, northing] = projectLocal([vertex.x, -vertex.z], model.center, zone);
+  vertices.addPoint3d(easting, northing, vertex.y);
+}
+
 function addMesh(
   rhino: Rhino,
   doc: InstanceType<Rhino["File3dm"]>,
@@ -62,23 +73,39 @@ function addMesh(
   const rhinoMesh = new rhino.Mesh();
   const vertices = rhinoMesh.vertices();
   vertices.useDoublePrecisionVertices = true;
-  const vertex = new THREE.Vector3();
-  for (let i = 0; i < position.count; i++) {
-    vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
-    // Three.js is Y-up: x east, y elevation, z = −north.
-    const [easting, northing] = projectLocal([vertex.x, -vertex.z], model.center, zone);
-    vertices.addPoint3d(easting, northing, vertex.y);
-  }
-
   const faces = rhinoMesh.faces();
+  const vertex = new THREE.Vector3();
   const index = mesh.geometry.getIndex();
-  if (index) {
-    for (let i = 0; i + 2 < index.count; i += 3) {
-      faces.addTriFace(index.getX(i), index.getX(i + 1), index.getX(i + 2));
+  const instanced = mesh as THREE.InstancedMesh;
+
+  if (instanced.isInstancedMesh) {
+    const instanceMatrix = new THREE.Matrix4();
+    const world = new THREE.Matrix4();
+    for (let n = 0; n < instanced.count; n++) {
+      instanced.getMatrixAt(n, instanceMatrix);
+      world.multiplyMatrices(instanced.matrixWorld, instanceMatrix);
+      const base = vertices.count;
+      for (let i = 0; i < position.count; i++) {
+        addWorldVertex(vertices, vertex.fromBufferAttribute(position, i).applyMatrix4(world), model, zone);
+      }
+      if (index) {
+        for (let i = 0; i + 2 < index.count; i += 3) {
+          faces.addTriFace(base + index.getX(i), base + index.getX(i + 1), base + index.getX(i + 2));
+        }
+      } else {
+        for (let i = 0; i + 2 < position.count; i += 3) faces.addTriFace(base + i, base + i + 1, base + i + 2);
+      }
     }
   } else {
-    for (let i = 0; i + 2 < position.count; i += 3) {
-      faces.addTriFace(i, i + 1, i + 2);
+    for (let i = 0; i < position.count; i++) {
+      addWorldVertex(vertices, vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld), model, zone);
+    }
+    if (index) {
+      for (let i = 0; i + 2 < index.count; i += 3) {
+        faces.addTriFace(index.getX(i), index.getX(i + 1), index.getX(i + 2));
+      }
+    } else {
+      for (let i = 0; i + 2 < position.count; i += 3) faces.addTriFace(i, i + 1, i + 2);
     }
   }
   if (faces.count === 0) {
