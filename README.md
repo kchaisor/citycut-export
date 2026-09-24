@@ -4,6 +4,14 @@ CityCut cuts a square out of a city and exports it as a 3D model and a 2D site p
 
 It is a study tool for early architectural work: OpenStreetMap footprints, estimated heights, and a flat ground slab. It is not a survey and it does not use lidar.
 
+## Live site
+
+The production build is set up to publish to [https://kchaisor.github.io/citycut-export/](https://kchaisor.github.io/citycut-export/).
+
+Pushes to `main` build `dist` and deploy it with GitHub Actions (`.github/workflows/pages.yml`). Vite’s `base` is `/citycut-export/`, so the built HTML, scripts, styles, and favicon resolve under that project path. The app has no client-side router, so there is no extra basename to set.
+
+GitHub Pages still needs **Settings → Pages → Source: GitHub Actions** turned on once for this repo (the site source is not enabled yet). After that, the address above is the live app.
+
 ## Pipeline
 
 1. **Choose a block.** A MapLibre map fills the screen. A fixed frame stays centered while you pan and zoom. The frame is a true square on the ground, from 0.25 km to 1.4 km on a side (about 2 km² at the top of the slider).
@@ -31,7 +39,7 @@ npm install
 npm run dev
 ```
 
-Vite prints a local URL (port 5173). Open it, leave the frame on Melbourne or search for a place, then press **Create model**.
+Vite serves the app at `http://localhost:5173/citycut-export/` (port 5173, same `/citycut-export/` base as Pages). Open that URL, leave the frame on Melbourne or search for a place, then press **Create model**. `npm run preview` serves the production build at `http://localhost:4173/citycut-export/`.
 
 ```bash
 npm test
