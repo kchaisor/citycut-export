@@ -4,8 +4,8 @@ import { sitePlanSvg } from "./svgPlan";
 import type { CityModel } from "../types";
 
 export function fileStem(model: CityModel): string {
-  const lat = model.center.lat.toFixed(4);
-  const lon = model.center.lon.toFixed(4);
+  const lat = `${Math.abs(model.center.lat).toFixed(4)}${model.center.lat < 0 ? "S" : "N"}`;
+  const lon = `${Math.abs(model.center.lon).toFixed(4)}${model.center.lon < 0 ? "W" : "E"}`;
   return `citycut-${lat}-${lon}-${Math.round(model.sideM)}m`;
 }
 
