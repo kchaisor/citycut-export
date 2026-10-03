@@ -39,6 +39,13 @@ export type UseTierFailure = {
   message: string;
 };
 
+/** One vertical extrusion inside an OSM footprint (CoM clip or OSM-height remainder). */
+export type BuildingExtrusionPart = {
+  ring: Ring;
+  holes: Ring[];
+  height: number;
+};
+
 export type BuildingFeat = {
   id: number;
   ring: Ring;
@@ -46,6 +53,11 @@ export type BuildingFeat = {
   height: number;
   use: BuildingUse;
   source: TypologySource;
+  /**
+   * When Better heights (CoM) clips overlaps, 3D and Rhino extrude each part separately.
+   * Site plan and exports still use {@link ring} only.
+   */
+  extrusionParts?: BuildingExtrusionPart[];
 };
 
 /** Highway class used for width and asphalt colour. Rail leaves this unset. */
@@ -170,6 +182,8 @@ export type CityModel = {
    * Absent keeps the older path: marching squares on `terrain` when `contours` is set.
    */
   contourLayer?: ContourLayer | null;
+  /** When true, building heights came from City of Melbourne 2023 Building Footprints. */
+  comBuildingHeights?: boolean;
 };
 
 export type ViewState = {

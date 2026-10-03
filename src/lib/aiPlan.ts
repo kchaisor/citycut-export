@@ -25,6 +25,7 @@ import { heliodonPlanPdfChunk } from "./heliodonPlanExport";
 import type { HeliodonDiagramExportOptions } from "./heliodonDiagram";
 import { planShadowRings, type PlanShadowInput } from "./buildingShadows";
 import { planPaths } from "./svgPlan";
+import { comBuildingHeightCreditLine } from "./comBuildingHeightCredit";
 import { VICMAP_CONTOUR_ATTRIBUTION } from "./vicmapContours";
 import type { CityModel, Pt } from "../types";
 
@@ -84,11 +85,14 @@ function titleLine(model: CityModel, layout: SheetLayout): string {
 }
 
 function creditLine(
+  model: CityModel,
   layout: SheetLayout,
   interval: number | null,
   source: "vicmap-metro" | "vicmap-state" | "dem" | null,
 ): string {
   const parts = ["© OpenStreetMap contributors. CityCut."];
+  const comCredit = comBuildingHeightCreditLine(model);
+  if (comCredit) parts.push(comCredit);
   if (interval && (source === "vicmap-metro" || source === "vicmap-state")) {
     parts.push(`Contours every ${interval} m. ${VICMAP_CONTOUR_ATTRIBUTION}`);
   } else if (interval) {
@@ -114,7 +118,7 @@ function annotation(
   const headR: [number, number] = [layout.northX + 0.9, yUp(layout.northTipY + 1.8, page)];
   const barBottom = yUp(layout.barY + layout.barHeightMm, page);
   const label = titleLine(model, layout);
-  const credit = creditLine(layout, interval, source);
+  const credit = creditLine(model, layout, interval, source);
   return {
     name: "Annotation",
     paths: [

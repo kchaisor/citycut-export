@@ -290,27 +290,41 @@ function paint(material: THREE.MeshStandardMaterial, layer: { polygonOffsetFacto
   return material;
 }
 
-function extrudeFootprint(building: BuildingFeat, base: number): THREE.BufferGeometry | null {
-  const build = (shape: THREE.Shape): THREE.BufferGeometry => {
-    const geometry = new THREE.ExtrudeGeometry(shape, {
-      depth: building.height,
-      bevelEnabled: false,
-    });
-    return layFlat(geometry, base);
-  };
-  const shape = shapeFromRing(building.ring, building.holes);
+function extrudeShape(shape: THREE.Shape, height: number, base: number): THREE.BufferGeometry {
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false,
+  });
+  return layFlat(geometry, base);
+}
+
+function extrudePart(ring: Ring, holes: Ring[], height: number, base: number): THREE.BufferGeometry | null {
+  const shape = shapeFromRing(ring, holes);
   if (!shape) return null;
   try {
-    return build(shape);
+    return extrudeShape(shape, height, base);
   } catch {
-    const fallback = shapeFromRing(building.ring, []);
+    const fallback = shapeFromRing(ring, []);
     if (!fallback) return null;
     try {
-      return build(fallback);
+      return extrudeShape(fallback, height, base);
     } catch {
       return null;
     }
   }
+}
+
+function extrudeFootprint(building: BuildingFeat, base: number): THREE.BufferGeometry[] {
+  const parts =
+    building.extrusionParts && building.extrusionParts.length > 0
+      ? building.extrusionParts
+      : [{ ring: building.ring, holes: building.holes, height: building.height }];
+  const geometries: THREE.BufferGeometry[] = [];
+  for (const part of parts) {
+    const geometry = extrudePart(part.ring, part.holes, part.height, base);
+    if (geometry) geometries.push(geometry);
+  }
+  return geometries;
 }
 
 function order(object: THREE.Object3D, renderOrder: number) {
@@ -456,19 +470,21 @@ export function buildCityGroup(model: CityModel, options: CityBuildOptions = {})
   if (options.splitBuildings) {
     for (const building of model.buildings) {
       const base = (model.terrain ? footprintBase(model.terrain, building.ring, model.sideM) : 0) + SURFACE.building.lift;
-      const geometry = extrudeFootprint(building, base);
-      if (!geometry) continue;
+      const geometries = extrudeFootprint(building, base);
       const name = buildingLayerName(building.use);
       const color = BUILDING_USE_META[building.use].color;
       const material = paint(matteStandardMaterial({ color }), SURFACE.building);
       material.name = name;
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.name = name;
-      mesh.userData.layerColor = hexRgb(color);
-      mesh.userData.use = building.use;
-      mesh.userData.typologySource = building.source;
-      order(mesh, SURFACE.building.renderOrder);
-      group.add(mesh);
+      for (const geometry of geometries) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = name;
+        mesh.userData.layerColor = hexRgb(color);
+        mesh.userData.use = building.use;
+        mesh.userData.typologySource = building.source;
+        mesh.userData.buildingId = building.id;
+        order(mesh, SURFACE.building.renderOrder);
+        group.add(mesh);
+      }
     }
   } else {
     const buckets = new Map<string, THREE.BufferGeometry[]>();
@@ -479,12 +495,12 @@ export function buildCityGroup(model: CityModel, options: CityBuildOptions = {})
     };
     for (const building of model.buildings) {
       const base = (model.terrain ? footprintBase(model.terrain, building.ring, model.sideM) : 0) + SURFACE.building.lift;
-      const geometry = extrudeFootprint(building, base);
-      if (!geometry) continue;
-      const name = bucketName(building);
-      const list = buckets.get(name);
-      if (list) list.push(geometry);
-      else buckets.set(name, [geometry]);
+      for (const geometry of extrudeFootprint(building, base)) {
+        const name = bucketName(building);
+        const list = buckets.get(name);
+        if (list) list.push(geometry);
+        else buckets.set(name, [geometry]);
+      }
     }
     for (const [name, geometries] of buckets) {
       const sourceKey = name.startsWith("source:") ? name.slice("source:".length) : "";

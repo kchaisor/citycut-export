@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, Download, DraftingCompass, Info, Sun, Trees } from "lucide-react";
 import {
   BUILDING_USES,
@@ -27,6 +27,20 @@ import {
   pngFilename,
 } from "../lib/download";
 import { FIGURE_SCALES, preferredFigureScale, sheetFitMessage } from "../lib/figureGround";
+import {
+  fetchComBuildingFootprints,
+  paddedComFetchBounds,
+  type ComBuildingFootprint,
+} from "../lib/comBuildingHeights";
+import { runComBuildingHeightsInWorker } from "../lib/comBuildingHeightsWorkerClient";
+import {
+  COM_BUILDING_HEIGHTS_CREDIT,
+  COM_BUILDING_HEIGHTS_DATASET_URL,
+} from "../lib/comBuildingHeightCredit";
+import {
+  readStoredComBuildingHeights,
+  writeStoredComBuildingHeights,
+} from "../lib/comBuildingHeightsToggle";
 import { formatCoord, formatLengthKm } from "../lib/geo";
 import { ISO_CORNERS, type IsoCorner } from "../lib/isoCamera";
 import { drawerIsAvailable, loadModelDrawer, reduceRail, saveModelDrawer } from "../lib/railState";
@@ -105,6 +119,10 @@ export function ModelPage({ model }: { model: CityModel }) {
     () => !capturePresetFromSearch(window.location.search).uniformBuildings,
   );
   const [showSource, setShowSource] = useState(false);
+  const [betterHeights, setBetterHeights] = useState(() =>
+    readStoredComBuildingHeights(window.localStorage),
+  );
+  const [comFootprints, setComFootprints] = useState<ComBuildingFootprint[]>([]);
   const [preferred, setPreferred] = useState<string | null>(() => loadModelDrawer());
   const [planWidth, setPlanWidth] = useState<number | null>(null);
   const [fitToken, setFitToken] = useState(0);
@@ -173,6 +191,62 @@ export function ModelPage({ model }: { model: CityModel }) {
   useEffect(() => {
     writeStoredView(window.localStorage, loadView());
   }, []);
+
+  useEffect(() => {
+    if (!betterHeights || !model.layers.buildings) {
+      setComFootprints([]);
+      return;
+    }
+    const bounds = paddedComFetchBounds(model.center, model.sideM);
+    const controller = new AbortController();
+    fetchComBuildingFootprints(bounds, model.center, controller.signal)
+      .then((footprints) => {
+        setComFootprints(footprints);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setComFootprints([]);
+        }
+      });
+    return () => controller.abort();
+  }, [betterHeights, model.center.lat, model.center.lon, model.sideM, model.layers.buildings]);
+
+  const [comHeightBuildings, setComHeightBuildings] = useState<typeof model.buildings | null>(null);
+  const [comHeightUpdates, setComHeightUpdates] = useState(0);
+
+  useEffect(() => {
+    if (!betterHeights || comFootprints.length === 0 || model.buildings.length === 0) {
+      setComHeightBuildings(null);
+      setComHeightUpdates(0);
+      return;
+    }
+    const controller = new AbortController();
+    runComBuildingHeightsInWorker(model.buildings, comFootprints, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setComHeightBuildings(result.buildings);
+        setComHeightUpdates(result.updated);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setComHeightBuildings(null);
+          setComHeightUpdates(0);
+        }
+      });
+    return () => controller.abort();
+  }, [betterHeights, comFootprints, model.buildings]);
+
+  const displayBuildings =
+    betterHeights && comHeightBuildings ? comHeightBuildings : model.buildings;
+
+  const displayModel = useMemo(
+    () => ({
+      ...model,
+      buildings: displayBuildings,
+      comBuildingHeights: betterHeights,
+    }),
+    [model, displayBuildings, betterHeights],
+  );
   const crs = mgaCrs(model.center.lon);
   const sideKm = model.sideM / 1000;
   const tierCounts = treeTierCounts(model.trees);
@@ -224,7 +298,7 @@ export function ModelPage({ model }: { model: CityModel }) {
     setExportError(null);
     setBusy("3dm");
     try {
-      await download3dm(model, {
+      await download3dm(displayModel, {
         heliodon: heliodonRhinoExport(),
         shadows: planShadowInput(),
         castShadows: solar.castShadows,
@@ -240,7 +314,7 @@ export function ModelPage({ model }: { model: CityModel }) {
     setExportError(null);
     setBusy("ai-site");
     try {
-      await downloadSiteAi(model, figureScale, lineStyles, sitePlanExportOptions());
+      await downloadSiteAi(displayModel, figureScale, lineStyles, sitePlanExportOptions());
     } catch {
       setExportError("The site plan could not be written.");
     } finally {
@@ -252,7 +326,7 @@ export function ModelPage({ model }: { model: CityModel }) {
     setExportError(null);
     setBusy("ai-figure");
     try {
-      await downloadFigureAi(model, figureScale, lineStyles, heliodonDiagramExport());
+      await downloadFigureAi(displayModel, figureScale, lineStyles, heliodonDiagramExport());
     } catch {
       setExportError("The figure-ground file could not be written.");
     } finally {
@@ -266,7 +340,7 @@ export function ModelPage({ model }: { model: CityModel }) {
     try {
       const exporter = exportRef.current;
       if (!exporter) throw new Error("The 3D view is not ready.");
-      await downloadViewAi(model, exporter.shot(), {
+      await downloadViewAi(displayModel, exporter.shot(), {
         uniformBuildings: !colourByUse && !showSource,
         colourBySource: showSource,
       });
@@ -317,7 +391,7 @@ export function ModelPage({ model }: { model: CityModel }) {
           <div className="fill">
             <SceneBoundary>
               <Scene3D
-                model={model}
+                model={displayModel}
                 uniformBuildings={!colourByUse && !showSource}
                 colourBySource={showSource}
                 projection={view.projection}
@@ -412,7 +486,31 @@ export function ModelPage({ model }: { model: CityModel }) {
                   <button type="button" aria-pressed={showSource} onClick={() => setShowSource((on) => !on)}>
                     {showSource ? "Showing source" : "Show source"}
                   </button>
+                  <button
+                    type="button"
+                    aria-pressed={betterHeights}
+                    onClick={() => {
+                      setBetterHeights((on) => {
+                        const next = !on;
+                        writeStoredComBuildingHeights(window.localStorage, next);
+                        return next;
+                      });
+                    }}
+                  >
+                    {betterHeights ? "Better heights (CoM 2023) on" : "Better heights (CoM 2023)"}
+                  </button>
                 </div>
+                {betterHeights && comHeightUpdates > 0 && (
+                  <p className="legend-note">
+                    {comHeightUpdates.toLocaleString()} building{comHeightUpdates === 1 ? "" : "s"} use City of
+                    Melbourne extrusion heights in this frame.
+                  </p>
+                )}
+                {betterHeights && (
+                  <p className="legend-note">
+                    <a href={COM_BUILDING_HEIGHTS_DATASET_URL}>{COM_BUILDING_HEIGHTS_CREDIT}</a>
+                  </p>
+                )}
                 {solar.showPath && tab === "3d" && (
                   <p className="legend-note">Buildings render white on screen while sun path is on; exports keep normal colours.</p>
                 )}
@@ -772,6 +870,14 @@ export function ModelPage({ model }: { model: CityModel }) {
                 Vicmap Vegetation Tree Urban
               </a>{" "}
               © State of Victoria (Department of Transport and Planning),{" "}
+              <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+            </>
+          )}
+          {betterHeights && (
+            <>
+              {" "}
+              Building heights:{" "}
+              <a href={COM_BUILDING_HEIGHTS_DATASET_URL}>2023 Building Footprints © City of Melbourne</a>,{" "}
               <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
             </>
           )}

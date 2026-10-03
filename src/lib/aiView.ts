@@ -11,6 +11,7 @@ import { formatCoord, openRing, signedArea } from "./geo";
 import { hexRgb } from "./lineweights";
 import { ROAD_COLOR, SURFACE } from "./surfaceLayers";
 import { footprintBase, sampleTerrain } from "./terrain";
+import { comBuildingHeightCreditLine } from "./comBuildingHeightCredit";
 import type { BuildingFeat, CityModel, Pt, Ring } from "../types";
 
 export const VIEW_LAYER_ORDER = [
@@ -714,12 +715,21 @@ export function viewChunks(model: CityModel, shot: CameraShot, style: ViewStyle)
   for (const fill of ordered) chunks.push(fill.chunk);
   if (outlinePaths.length > 0) chunks.push({ name: "Outlines", paths: outlinePaths });
   const label = `${model.placeLabel} · ${formatPair(model)}`;
+  const comCredit = comBuildingHeightCreditLine(model);
   const plate = Math.min(page.widthMm - 8, Math.max(42, label.length * 1.35 + 8));
+  const boxHeight = comCredit ? 18.4 : 12.4;
+  const texts: PdfChunk["texts"] = [
+    { x: 4.2, y: boxHeight - 4, sizeMm: 2.6, text: label, color: ink },
+    { x: 4.2, y: 4.2, sizeMm: 2.8, text: "not to scale", color: ink },
+  ];
+  if (comCredit) {
+    texts.splice(1, 0, { x: 4.2, y: 8.8, sizeMm: 1.85, text: comCredit, color: ink });
+  }
   chunks.push({
     name: "Annotation",
     paths: [
       {
-        rings: [[[3, 2.4], [3 + plate, 2.4], [3 + plate, 12.4], [3, 12.4]]],
+        rings: [[[3, 2.4], [3 + plate, 2.4], [3 + plate, 2.4 + boxHeight], [3, 2.4 + boxHeight]]],
         fill: [0.98, 0.97, 0.95],
         stroke: ink,
         strokeMm: 0.13,
@@ -727,10 +737,7 @@ export function viewChunks(model: CityModel, shot: CameraShot, style: ViewStyle)
         evenOdd: false,
       },
     ],
-    texts: [
-      { x: 4.2, y: 8.4, sizeMm: 2.6, text: label, color: ink },
-      { x: 4.2, y: 4.2, sizeMm: 2.8, text: "not to scale", color: ink },
-    ],
+    texts,
   });
   return chunks;
 }

@@ -34,7 +34,7 @@ export function parseMeters(raw: string | undefined): number | null {
   return value;
 }
 
-function clampHeight(meters: number): number {
+export function clampBuildingHeight(meters: number): number {
   return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, meters));
 }
 
@@ -43,10 +43,10 @@ export function buildingHeight(tags: Record<string, string>): number {
     parseMeters(tags.height) ??
     parseMeters(tags["building:height"]) ??
     parseMeters(tags.est_height);
-  if (tagged !== null && tagged > 0) return clampHeight(tagged);
+  if (tagged !== null && tagged > 0) return clampBuildingHeight(tagged);
 
   const levels = parseLooseNumber(tags["building:levels"]);
-  if (levels !== null && levels > 0) return clampHeight(levels * LEVEL_HEIGHT);
+  if (levels !== null && levels > 0) return clampBuildingHeight(levels * LEVEL_HEIGHT);
 
   return DEFAULT_HEIGHT;
 }
